@@ -1,0 +1,57 @@
+@import "tailwindcss";
+:root {
+  --color-bg: #f8fafc;
+  --color-bg-dark: #18181b;
+  --color-chat-bg: #fff;
+  --color-chat-bg-dark: #23272f;
+  --color-border: #e5e7eb;
+  --color-border-dark: #30313a;
+  --color-shadow: 0 4px 24px 0 rgba(30, 41, 59, 0.10);
+  --color-user: #2563eb;
+  --color-user-bg: #e0e7ff;
+  --color-bot: #334155;
+  --color-bot-bg: #f3f4f6;
+  --color-user-bg-dark: #1e293b;
+  --color-bot-bg-dark: #27272a;
+  --radius: 18px;
+  --radius-bubble: 1.2em;
+  --transition: 0.2s cubic-bezier(.4,0,.2,1);
+  --font-main: 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Mono', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: var(--color-bg-dark);
+    --color-chat-bg: var(--color-chat-bg-dark);
+    --color-border: var(--color-border-dark);
+    --color-user-bg: var(--color-user-bg-dark);
+    --color-bot-bg: var(--color-bot-bg-dark);
+    --color-bot: #f1f5f9;
+  }
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+:root {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
