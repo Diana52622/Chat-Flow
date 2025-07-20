@@ -12,7 +12,7 @@ export default function Chat() {
     { from: "bot", text: "Здравствуйте! Я помогу вам подобрать поездку. Опишите ваш запрос или ответьте на вопросы." },
   ]);
   const [input, setInput] = useState("");
-  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,18 +30,21 @@ export default function Chat() {
     inputRef.current?.focus();
     setLoading(true);
     try {
-      const res = await fetch("/api/dialog", {
+      const currentSessionId = sessionId || `frontend-session-${Math.floor(Math.random() * 1000000)}`;
+      const res = await fetch("http://localhost:4000/api/dialog/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMsg,
-          ...(sessionId ? { session_id: sessionId } : {}),
+          sessionId: currentSessionId,
+          languageCode: "ru"
         }),
       });
       const data = await res.json();
-      if (data.session_id) setSessionId(data.session_id);
-      if (data.response) setMessages((msgs) => [...msgs, { from: "bot", text: data.response }]);
-      if (data.finished) setSessionId(null);
+      setSessionId(currentSessionId);
+      if (data.queryResult?.fulfillmentText) {
+        setMessages((msgs) => [...msgs, { from: "bot", text: data.queryResult.fulfillmentText }]);
+      }
     } catch {
       setMessages((msgs) => [...msgs, { from: "bot", text: "Ошибка соединения с сервером." }]);
     } finally {
