@@ -6,7 +6,8 @@ import { connectDB } from './db';
 import bookingRoutes from './routes/bookingRoutes';
 import sessionRoutes from './routes/sessionRoutes';
 import dialogRoutes from './routes/dialogRoutes';
-import fulfillmentRoutes from './routes/fulfillmentRoutes';
+import dialogflowWebhookRoutes from './routes/dialogflowWebhookRoutes';
+import flightRoutes from './routes/flightRoutes';
 import cors from 'cors';
 
 dotenv.config();
@@ -19,7 +20,8 @@ app.use(cors({ origin: 'http://localhost:3000' }));
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/dialog', dialogRoutes);
-app.use('/webhook', fulfillmentRoutes);
+app.use('/api/webhook', dialogflowWebhookRoutes);
+app.use('/api/flights', flightRoutes);
 
 app.get('/', (req, res) => {
   res.send('Trip Chat Backend API');

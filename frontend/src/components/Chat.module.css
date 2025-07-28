@@ -1,33 +1,120 @@
-.chat {
+.chatContainer {
   display: flex;
   flex-direction: column;
-  max-width: 480px;
-  width: 100%;
-  margin: 0 auto;
-  height: 80vh;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-chat-bg);
-  box-shadow: var(--color-shadow);
-  padding: 1.2rem 1.2rem 1.1rem 1.2rem;
-  font-family: var(--font-main);
-  transition: background var(--transition), border var(--transition);
+  max-width: 800px;
+  height: 90vh;
+  margin: 20px auto;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-.chat__messages {
+.messages {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 1rem;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) var(--color-chat-bg);
+  padding: 20px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #f8f9fa;
+  background-image: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
 }
 
-.chat__messages::-webkit-scrollbar {
-  width: 8px;
+.messages::-webkit-scrollbar {
+  width: 6px;
 }
-.chat__messages::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: var(--radius-bubble);
+
+.messages::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.message {
+  max-width: 80%;
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  border-radius: 18px;
+  line-height: 1.4;
+  position: relative;
+  color: #000;
+  animation: fadeIn 0.3s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.user {
+  background-color: #007bff;
+  color: white;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+  margin-right: 15px;
+}
+
+.bot {
+  background-color: #f8f9fa;
+  color: #333;
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+  margin-left: 15px;
+  border: 1px solid #e9ecef;
+}
+
+/* Question styling */
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.optionButton {
+  background-color: #e9ecef;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #495057;
+  font-weight: 500;
+}
+
+.optionButton:hover {
+  background-color: #dee2e6;
+  transform: translateY(-1px);
+}
+
+.optionButton:active {
+  transform: translateY(0);
+}
+
+.message.user {
+  align-self: flex-end;
+  background: #0084ff;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message.bot {
+  align-self: flex-start;
+  background: white;
+  color: #050505;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.messageText {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .chat__message {
@@ -73,35 +160,363 @@
   border-bottom-left-radius: 0.3em;
 }
 
-.chat__form {
-  display: flex;
-  gap: 0.7rem;
-  margin-top: 0.2rem;
+/* Trip Cards */
+.tripsList {
+  margin: 10px 0;
+  width: 100%;
 }
 
-.chat__input {
-  flex: 1;
-  border: 1.5px solid var(--color-border);
+.tripCard {
+  background: white;
   border-radius: 12px;
-  padding: 0.58rem 1rem;
-  font-size: 1.07rem;
-  background: var(--color-chat-bg);
-  color: var(--color-bot);
-  font-family: var(--font-main);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 10px 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid #eaeaea;
+}
+
+.tripCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tripCard.selected {
+  border: 2px solid #007bff;
+  background-color: #f0f7ff;
+}
+
+/* Header */
+.tripHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #f8f9fa;
+}
+
+.tripType {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.tripNumber {
+  font-weight: 600;
+}
+
+.tripStatus {
+  font-size: 0.85em;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* Status styles */
+.tripStatus[data-status="scheduled"],
+.tripStatus[data-status="on_time"] {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.tripStatus[data-status="delayed"] {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.tripStatus[data-status="cancelled"] {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Route */
+.tripRoute {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tripSegment {
+  flex: 1;
+  text-align: center;
+}
+
+.tripTime {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.tripCity {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.tripDate {
+  font-size: 0.85em;
+  color: #6c757d;
+}
+
+.tripDivider {
+  font-size: 1.2em;
+  color: #6c757d;
+  margin: 0 10px;
+  display: flex;
+  align-items: center;
+}
+
+/* Trip details */
+.tripDetails {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.9em;
+  color: #495057;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tripDetails span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Footer */
+.tripFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+}
+
+.tripSeats {
+  font-size: 0.9em;
+  color: #6c757d;
+}
+
+.tripPrice {
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #28a745;
+}
+
+.bookButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-width: 100px;
+  text-align: center;
+}
+
+.bookButton:hover {
+  background-color: #0056b3;
+}
+
+.bookButton:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Trip list */
+.tripsList h4 {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 1.1em;
+  padding: 0 8px;
+}
+
+/* Transport icons */
+.tripType svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tripRoute {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .tripDivider {
+    transform: rotate(90deg);
+    margin: 8px 0;
+  }
+  
+  .tripCard {
+    margin: 8px 0;
+  }
+  
+  .tripFooter {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .bookButton {
+    width: 100%;
+    margin-top: 8px;
+  }
+  
+  .tripDetails {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Input Form */
+.inputContainer {
+  position: relative;
+  width: 100%;
+}
+
+.inputForm {
+  display: flex;
+  padding: 10px;
+  background: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+  position: relative;
+  z-index: 10;
+}
+
+.inputForm::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed, #a855f7);
+  background-size: 200% 100%;
+  animation: gradient 3s ease infinite;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.inputForm input {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  margin-right: 10px;
+  font-size: 14px;
   outline: none;
-  transition: border var(--transition), background var(--transition);
+  background: white;
+  transition: all 0.3s ease;
 }
 
-.chat__input:focus {
-  border-color: var(--color-user);
-  background: #f1f5fd;
+.inputForm input:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
-.chat__input::placeholder {
+/* Стили для блока подсказок */
+.suggestions {
+  position: absolute;
+  bottom: 100%;
+  left: 10px;
+  right: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  transform: translateY(-10px);
+  opacity: 1;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  display: block !important;
+}
+
+.suggestions.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+  display: block !important;
+}
+
+.suggestionItem {
+  padding: 10px 15px;
+  font-size: 14px;
+  color: #000 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.suggestionItem:hover {
+  background-color: #f8f9fa;
+  color: #1a73e8;
+}
+
+.suggestionItem:active {
+  background-color: #e8f0fe;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .suggestions {
+    max-height: 150px;
+  }
+  
+  .suggestionItem {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+.inputForm button {
+  margin-left: 8px;
+  background: #0084ff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.inputForm button:hover {
+  background: #0069d9;
+}
+
+.inputForm button:disabled {
+  background: #b3d7ff;
+  cursor: not-allowed;
   color: #94a3b8;
   opacity: 1;
-  font-family: var(--font-main);
-  font-size: 1.01rem;
 }
 
 @media (prefers-color-scheme: dark) {

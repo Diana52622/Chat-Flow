@@ -7,3 +7,4 @@ export interface Booking {
   transport_type: string;
   created_at: string;
 }
+
