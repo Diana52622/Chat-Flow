@@ -73,7 +73,6 @@ export async function listFlights(
 
   if (filters.departure_date) {
     try {
-      // Convert the input date to a proper Date object and format it as YYYY-MM-DD
       const date = new Date(filters.departure_date);
       if (isNaN(date.getTime())) {
         throw new Error('Invalid date format');
@@ -84,7 +83,6 @@ export async function listFlights(
       paramIndex++;
     } catch (error) {
       console.error('Error processing date filter:', error);
-      // If date parsing fails, don't apply the date filter
     }
   }
 
@@ -95,7 +93,6 @@ export async function listFlights(
   }
 
   if (filters.transport_type) {
-    // Map common transport type names to database values if needed
     const transportTypeMap: {[key: string]: string} = {
       'автобус': 'bus',
       'поезд': 'train',
@@ -117,7 +114,6 @@ export async function listFlights(
     console.log('Executing query:', query);
     console.log('With parameters:', queryParams);
     
-    // Log the exact query with parameters for debugging
     const debugQuery = queryParams.reduce((q, param, index) => 
       q.replace(`$${index + 1}`, typeof param === 'string' ? `'${param}'` : param), 
       query

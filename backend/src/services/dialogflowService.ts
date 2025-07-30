@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { v4 as uuidv4 } from 'uuid';
 import { SessionsClient, protos } from '@google-cloud/dialogflow';
+import fs from 'fs';
 
 type Value = {
   stringValue?: string;
@@ -9,24 +10,13 @@ type Value = {
   boolValue?: boolean;
 };
 
-type DialogflowContext = {
-  name: string;
-  parameters: {
-    fields: { [key: string]: Value };
-  };
-};
-import path from 'path';
-import fs from 'fs';
 
-// Set the path to your service account key file
 const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || 'trips-mevj-3f9d7752feec.json';
 
-// Verify credentials file exists
 if (!fs.existsSync(credentialsPath)) {
   throw new Error(`Google Cloud credentials file not found at: ${credentialsPath}`);
 }
 
-// Initialize Dialogflow client
 const sessionClient = new SessionsClient({
   keyFilename: credentialsPath
 });
@@ -100,7 +90,7 @@ export async function sendToDialogflow(
       responseId: result.responseId || '',
       session: sessionId,
       queryResult: {
-        queryText: message, // Include the original message as queryText
+        queryText: message,
         intent: {
           displayName: result.queryResult?.intent?.displayName || '',
           isFallback: result.queryResult?.intent?.isFallback || false,
@@ -109,7 +99,6 @@ export async function sendToDialogflow(
           fields: Object.fromEntries(
             Object.entries(result.queryResult?.parameters?.fields || {}).map(([key, value]) => {
               const val: Value = {};
-              // Safely handle null/undefined values
               if (value?.stringValue !== undefined && value.stringValue !== null) {
                 val.stringValue = value.stringValue;
               }
@@ -126,7 +115,6 @@ export async function sendToDialogflow(
         fulfillmentText: result.queryResult?.fulfillmentText || '',
         allRequiredParamsPresent: result.queryResult?.allRequiredParamsPresent || false,
         outputContexts: (result.queryResult?.outputContexts || []).map(context => {
-          // Safely handle potentially null/undefined context
           const contextName = context?.name || '';
           const contextParams = context?.parameters?.fields || {};
           

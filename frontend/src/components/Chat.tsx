@@ -22,15 +22,13 @@ interface FlightsMessage extends Omit<BaseMessage, 'text'> {
   type: 'flights';
   flights: Trip[];
   showMore: boolean;
-  text?: string; // Make text optional for FlightsMessage
+  text?: string;  
 }
 
 type Message = TextMessage | FlightMessage | FlightsMessage;
 
-// Типы транспорта
 type TransportType = 'airplane' | 'train' | 'bus';
 
-// Базовый интерфейс для поездки
 interface TripBase {
   id: number;
   number: string;
@@ -44,7 +42,6 @@ interface TripBase {
   type: TransportType;
 }
 
-// Интерфейсы для конкретных типов транспорта
 interface AirplaneTrip extends TripBase {
   type: 'airplane';
   gate?: string;
@@ -65,14 +62,10 @@ interface BusTrip extends TripBase {
   amenities: string[];
 }
 
-// Общий тип для поездки
 type Trip = AirplaneTrip | TrainTrip | BusTrip;
-
-// Старый интерфейс Flight был удалён, так как мы используем новый тип Trip
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
-  // We'll keep track of selected flight for the booking flow
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -88,7 +81,6 @@ export default function Chat() {
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Шаблоны подсказок
   const suggestionTemplates = [
     'Хочу поехать',
     'Забронировать билет',
@@ -97,15 +89,13 @@ export default function Chat() {
 
 
   
-  // Функция для загрузки дополнительных рейсов
   const loadMoreTrips = useCallback((allTrips: Trip[], page: number) => {
-    const endIndex = page; // Show one more trip with each click
+    const endIndex = page; 
     const hasMoreTrips = endIndex < allTrips.length;
     
     setCurrentPage(page);
     setHasMore(hasMoreTrips);
     
-    // Update the flights message
     setMessages(prev => {
       const flightMessageIndex = prev.findIndex((msg): msg is FlightMessage => msg.type === 'flight');
       if (flightMessageIndex !== -1) {
@@ -113,13 +103,12 @@ export default function Chat() {
         const flightMessage = updatedMessages[flightMessageIndex] as FlightMessage;
         updatedMessages[flightMessageIndex] = {
           ...flightMessage,
-          data: allTrips.slice(0, endIndex), // Show all trips up to current page
+          data: allTrips.slice(0, endIndex), 
           hasMore: hasMoreTrips,
           loadingMore: false
         };
         return updatedMessages;
       } else {
-        // If there's no flight message yet, add it
         const newMessage: FlightMessage = {
           from: 'bot',
           type: 'flight',
@@ -133,27 +122,23 @@ export default function Chat() {
     });
   }, []);
   
-  // Обработчик нажатия на кнопку "Показать ещё"
   const handleLoadMore = () => {
     if (loadingMore || !hasMore) return;
     
     setLoadingMore(true);
     
-    // Имитация задержки загрузки
     setTimeout(() => {
       loadMoreTrips(trips, currentPage + 1);
       setLoadingMore(false);
     }, 500);
   };
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
   
-  // Load initial trips
   useEffect(() => {
     const fetchTrips = async () => {
       try {
@@ -164,7 +149,6 @@ export default function Chat() {
         }
         const apiData = await response.json();
         
-        // Define the API trip type
         interface ApiTrip {
           id: number;
           flight_number: string;
@@ -178,15 +162,13 @@ export default function Chat() {
           status: string;
         }
         
-        // Map API response to match our frontend's expected format
         const mappedTrips: Trip[] = apiData.map((trip: ApiTrip) => {
           const baseTrip = {
             ...trip,
-            number: trip.flight_number, // Map flight_number to number
-            type: trip.transport_type   // Map transport_type to type
+            number: trip.flight_number, 
+            type: trip.transport_type   
           };
           
-          // Add default amenities for bus trips if not present
           if (trip.transport_type === 'bus' && !('amenities' in trip)) {
             return {
               ...baseTrip,
@@ -200,7 +182,6 @@ export default function Chat() {
         
         setTrips(mappedTrips);
         
-        // Initial greeting message
         const greetingMessage: Message = { 
           from: 'bot', 
           type: 'message',
@@ -209,7 +190,6 @@ export default function Chat() {
         
         setMessages([greetingMessage]);
         
-        // Initially load only 1 trip
         if (mappedTrips.length > 0) {
           const initialTrips = [mappedTrips[0]];
           const hasMore = mappedTrips.length > 1;
@@ -242,7 +222,6 @@ export default function Chat() {
     fetchTrips();
   }, [loadMoreTrips]);
 
-  // Форматирование времени
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('ru-RU', { 
@@ -252,7 +231,6 @@ export default function Chat() {
     });
   };
 
-  // Форматирование даты
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
       day: 'numeric', 
@@ -264,29 +242,22 @@ export default function Chat() {
     return new Date(dateString).toLocaleDateString('ru-RU', options);
   };
   
-  // Генерация подсказок на основе ввода пользователя
   const generateSuggestions = (inputText: string) => {
     if (!inputText.trim()) {
-      // Если поле пустое, показываем популярные запросы
       const allSuggestions = [...new Set([...searchHistory, ...suggestionTemplates])];
       return allSuggestions.slice(0, 5);
     }
 
-    // Фильтруем подсказки по введенному тексту
     const filtered = suggestionTemplates.filter(template => 
       template.toLowerCase().includes(inputText.toLowerCase())
     );
-
-    // Добавляем историю поиска, если есть совпадения
     const historySuggestions = searchHistory.filter(item => 
       item.toLowerCase().includes(inputText.toLowerCase())
     );
 
-    // Объединяем и убираем дубликаты
     return [...new Set([...historySuggestions, ...filtered])].slice(0, 5);
   };
 
-  // Обработчик изменения ввода
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInput(value);
@@ -296,22 +267,18 @@ export default function Chat() {
     setShowSuggestions(true);
   };
 
-  // Обработчик выбора подсказки
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
     setShowSuggestions(false);
     
-    // Добавляем выбранную подсказку в историю
     setSearchHistory(prev => {
       const newHistory = [suggestion, ...prev.filter(item => item !== suggestion)];
-      return newHistory.slice(0, 10); // Сохраняем только 10 последних запросов
+      return newHistory.slice(0, 10); 
     });
     
-    // Фокус на поле ввода
     inputRef.current?.focus();
   };
 
-  // Обработчик клика вне блока подсказок
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
@@ -325,14 +292,12 @@ export default function Chat() {
     };
   }, []);
 
-  // Фокус на поле ввода при монтировании и после обновления сообщений
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, [messages]);
 
-  // Получение названия типа транспорта
   const getTransportName = (type: TransportType): string => {
     switch(type) {
       case 'airplane': return 'Самолёт';
@@ -342,7 +307,6 @@ export default function Chat() {
     }
   };
 
-  // Добавление города в историю поиска
   const addCityToHistory = (city: string) => {
     setSearchHistory(prev => {
       const newHistory = [city, ...prev.filter(item => item !== city)];
@@ -350,11 +314,9 @@ export default function Chat() {
     });
   };
 
-  // Обработка выбора поездки
   const handleTripSelect = (trip: Trip) => {
     setSelectedTrip(trip);
     
-    // Добавляем города в историю поиска
     addCityToHistory(trip.departure_city);
     addCityToHistory(trip.arrival_city);
     
@@ -381,7 +343,6 @@ export default function Chat() {
       text: `Выбрал ${tripType} ${tripNumber} (${trip.departure_city} → ${trip.arrival_city})`
     }]);
     
-    // Запрашиваем количество пассажиров
     setMessages(prev => [...prev, {
       from: 'bot',
       type: 'message',
@@ -389,11 +350,8 @@ export default function Chat() {
     }]);
   };
 
-  // Рендер содержимого сообщения в зависимости от типа
   const renderMessageContent = (msg: Message) => {
-    // Обработка сообщений с рейсами (как от Dialogflow, так и от бэкенда)
     if (msg.type === 'flight' && 'data' in msg) {
-      // Обработка старого формата FlightMessage
       const trips = msg.data;
       return (
         <div className={styles.tripsList}>
@@ -430,7 +388,6 @@ export default function Chat() {
                 </div>
               </div>
               
-              {/* Дополнительная информация в зависимости от типа транспорта */}
               {trip.type === 'airplane' && (
                 <div className={styles.tripDetails}>
                   <span>Терминал: {(trip as AirplaneTrip).terminal || 'Не указан'}</span>
@@ -503,9 +460,6 @@ export default function Chat() {
     if (!input.trim()) return;
     const userMsg = input;
     
-    // Save the input element reference before clearing the input
-    
-    // Create a properly typed user message
     const userMessage: Message = { 
       from: "user", 
       type: "message",
@@ -520,7 +474,6 @@ export default function Chat() {
     try {
       const currentSessionId = sessionId || `frontend-session-${Math.floor(Math.random() * 1000000)}`;
       
-      // Send the message in Dialogflow webhook format
       const res = await fetch("http://localhost:4000/api/webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -550,9 +503,7 @@ export default function Chat() {
       const data = await res.json();
       setSessionId(currentSessionId);
 
-      // Process the response from the backend
       if (data.fulfillmentText) {
-        // Add the bot's text response
         const botMessage: Message = {
           from: "bot",
           type: "message",
@@ -560,7 +511,6 @@ export default function Chat() {
         };
         setMessages(msgs => [...msgs, botMessage]);
         
-        // If there are flights in the response, add them as a flight message
         if (data.flights && Array.isArray(data.flights) && data.flights.length > 0) {
           interface ApiFlightResponse {
             id: number;
@@ -577,7 +527,6 @@ export default function Chat() {
             transport_type?: string;
           }
           
-          // Process flights from the backend response
           const processedFlights: Trip[] = data.flights.map((flight: ApiFlightResponse) => ({
             id: flight.id,
             number: flight.number || flight.flight_number || 'N/A',
@@ -591,7 +540,6 @@ export default function Chat() {
             type: (flight.type || flight.transport_type || 'bus') as TransportType
           }));
           
-          // Create the flight message with processed data
           const flightMessage: FlightsMessage = {
             from: "bot",
             type: "flights",
@@ -600,10 +548,8 @@ export default function Chat() {
             showMore: false
           };
           
-          // Replace the last bot message with the flight results
           setMessages(msgs => {
             const newMessages = [...msgs];
-            // Remove the last message if it's the same as our fulfillment text
             if (newMessages.length > 0 && 
                 newMessages[newMessages.length - 1].from === 'bot' &&
                 newMessages[newMessages.length - 1].text === data.fulfillmentText) {
@@ -613,25 +559,20 @@ export default function Chat() {
           });
         }
       } else if (data.queryResult && data.queryResult.fulfillmentText) {
-        // Create a bot message with the response text
         const botMessage: Message = {
           from: "bot",
           type: "message",
           text: data.queryResult.fulfillmentText
         };
         
-        // Проверяем, есть ли в ответе данные о рейсах
         if (data.queryResult.parameters && data.queryResult.parameters.flights) {
           const flights = data.queryResult.parameters.flights;
           
-          // Если есть рейсы, добавляем их в состояние
           if (flights.length > 0) {
             setTrips(flights);
             
-            // Добавляем сообщение о количестве найденных рейсов
             setMessages(msgs => [...msgs, botMessage]);
             
-            // Добавляем блок с рейсами
             const flightsMessage: FlightMessage = {
               from: 'bot',
               type: 'flight',
@@ -644,7 +585,6 @@ export default function Chat() {
             setMessages(msgs => [...msgs, flightsMessage]);
             return;
           } else {
-            // Если рейсов не найдено, изменяем текст сообщения
             const noFlightsMessage: Message = {
               from: 'bot',
               type: 'message',
@@ -655,7 +595,6 @@ export default function Chat() {
           }
         }
         
-        // Если нет данных о рейсах, просто добавляем текстовое сообщение
         setMessages(msgs => [...msgs, botMessage]);
       }
     } catch {

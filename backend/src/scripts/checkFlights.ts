@@ -2,7 +2,6 @@ import pool from '../db';
 
 async function checkFlights() {
   try {
-    // Query all flights
     const result = await pool.query('SELECT * FROM flights');
     
     console.log(`Found ${result.rows.length} flights in the database`);
@@ -20,7 +19,6 @@ async function checkFlights() {
       });
     }
     
-    // Check for flights from Moscow to Minsk tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0];
