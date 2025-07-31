@@ -22,6 +22,7 @@ interface FlightsMessage extends Omit<BaseMessage, 'text'> {
   type: 'flights';
   flights: Trip[];
   showMore: boolean;
+  hasMore?: boolean;
   text?: string;  
 }
 
@@ -63,6 +64,22 @@ interface BusTrip extends TripBase {
 }
 
 type Trip = AirplaneTrip | TrainTrip | BusTrip;
+
+// Интерфейс для данных о рейсе из API
+interface ApiFlight {
+  id: number;
+  number?: string;
+  flight_number?: string;
+  departure_city: string;
+  arrival_city: string;
+  departure_time: string;
+  arrival_time: string;
+  price: string | number;
+  available_seats: number;
+  status: string;
+  type?: string;
+  transport_type?: string;
+}
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -351,8 +368,8 @@ export default function Chat() {
   };
 
   const renderMessageContent = (msg: Message) => {
-    if (msg.type === 'flight' && 'data' in msg) {
-      const trips = msg.data;
+    if ((msg.type === 'flight' || msg.type === 'flights') && ('data' in msg || 'flights' in msg)) {
+      const trips = 'data' in msg ? msg.data : (msg as FlightsMessage).flights;
       return (
         <div className={styles.tripsList}>
           <h4>{msg.text || 'Доступные рейсы:'}</h4>
@@ -431,7 +448,7 @@ export default function Chat() {
             </div>
           ))}
           
-          {msg.hasMore && (
+          {('hasMore' in msg && msg.hasMore) && (
             <div className={styles.loadMoreContainer}>
               <button 
                 className={styles.loadMoreButton}
@@ -501,9 +518,35 @@ export default function Chat() {
       }
       
       const data = await res.json();
+      console.log('Получен ответ от сервера:', JSON.stringify(data, null, 2));
       setSessionId(currentSessionId);
 
-      if (data.fulfillmentText) {
+      if (data.flights && Array.isArray(data.flights)) {
+        console.log('Найдены рейсы в data.flights:', data.flights);
+        
+        const flightMessage: FlightsMessage = {
+          from: 'bot',
+          type: 'flights',
+          flights: data.flights.map((flight: ApiFlight) => ({
+            ...flight,
+            price: typeof flight.price === 'string' ? parseFloat(flight.price) : flight.price,
+            type: (flight.type || flight.transport_type || 'bus') as TransportType
+          })),
+          showMore: false
+        };
+        
+        setMessages(msgs => [...msgs, flightMessage]);
+        
+        if (data.fulfillmentText) {
+          const botMessage: Message = {
+            from: "bot",
+            type: "message",
+            text: data.fulfillmentText
+          };
+          setMessages(msgs => [...msgs, botMessage]);
+        }
+      } 
+      else if (data.fulfillmentText) {
         const botMessage: Message = {
           from: "bot",
           type: "message",
@@ -557,6 +600,32 @@ export default function Chat() {
             }
             return [...newMessages, flightMessage];
           });
+        }
+      } else if (data.queryResult && data.queryResult.parameters && data.queryResult.parameters.flights) {
+        const flights = data.queryResult.parameters.flights;
+        
+        if (flights.length > 0) {
+          const flightMessage: FlightsMessage = {
+            from: 'bot',
+            type: 'flights',
+            flights: flights.map((flight: ApiFlight) => ({
+              ...flight,
+              price: typeof flight.price === 'string' ? parseFloat(flight.price) : flight.price,
+              type: (flight.type || flight.transport_type || 'bus') as TransportType
+            })),
+            showMore: false
+          };
+          
+          setMessages(msgs => [...msgs, flightMessage]);
+        }
+        
+        if (data.queryResult.fulfillmentText) {
+          const botMessage: Message = {
+            from: "bot",
+            type: "message",
+            text: data.queryResult.fulfillmentText
+          };
+          setMessages(msgs => [...msgs, botMessage]);
         }
       } else if (data.queryResult && data.queryResult.fulfillmentText) {
         const botMessage: Message = {

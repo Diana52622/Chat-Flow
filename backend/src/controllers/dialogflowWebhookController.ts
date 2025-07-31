@@ -189,16 +189,43 @@ export const handleDialogflowWebhook = async (req: Request, res: Response) => {
           });
         }
         
-        const date = allParams['date-time']?.stringValue || allParams['departure-date']?.stringValue || '';
-        const transportType = allParams['transport-type']?.stringValue || '';
-        const passengers = parseInt(allParams['passenger-count']?.numberValue?.toString() || '1');
+        let dateValue = '';
+        if (allParams['date']?.stringValue) {
+          dateValue = allParams['date'].stringValue.split('T')[0];
+        } else if (allParams['date-time']?.stringValue) {
+          dateValue = allParams['date-time'].stringValue.split('T')[0];
+        } else if (allParams['departure-date']?.stringValue) {
+          dateValue = allParams['departure-date'].stringValue.split('T')[0];
+        }
+        
+        let transportType = '';
+        if (allParams['transport_type']?.stringValue) {
+          transportType = allParams['transport_type'].stringValue.toLowerCase().replace(/[^a-zа-яё]/gi, '');
+        } else if (allParams['transport-type']?.stringValue) {
+          transportType = allParams['transport-type'].stringValue.toLowerCase().replace(/[^a-zа-яё]/gi, '');
+        }
+        
+        const transportTypeMap: {[key: string]: string} = {
+          'самолет': 'airplane',
+          'самолёт': 'airplane',
+          'поезд': 'train',
+          'автобус': 'bus'
+        };
+        
+        const normalizedTransportType = transportTypeMap[transportType] || transportType;
+        
+        const passengers = parseInt(
+          allParams['passengers']?.numberValue?.toString() || 
+          allParams['passenger-count']?.numberValue?.toString() || 
+          '1'
+        );
         
         const searchParams = {
           fromCity: fromCity.trim(),
           toCity: toCity.trim(),
-          date: date.split('T')[0],
-          transportType: transportType.toLowerCase(),
-          passengers: isNaN(passengers) ? 1 : passengers
+          date: dateValue,
+          transportType: normalizedTransportType,
+          passengers: isNaN(passengers) ? 1 : Math.max(1, passengers) // Минимум 1 пассажир
         };
         
         console.log('Параметры для поиска рейсов:', searchParams);
@@ -216,6 +243,17 @@ export const handleDialogflowWebhook = async (req: Request, res: Response) => {
           
           if (searchParams.date) {
             filters.departure_date = searchParams.date;
+            console.log('Added date filter:', searchParams.date);
+          }
+          
+          if (searchParams.transportType) {
+            filters.transport_type = searchParams.transportType;
+            console.log('Added transport type filter:', searchParams.transportType);
+          }
+          
+          if (searchParams.passengers) {
+            filters.min_seats = searchParams.passengers;
+            console.log('Added min seats filter:', searchParams.passengers);
           }
           
           if (searchParams.passengers) {
@@ -252,10 +290,21 @@ export const handleDialogflowWebhook = async (req: Request, res: Response) => {
               type: flight.transport_type
             }));
             
-            return res.json({
-              fulfillmentText: `Нашёл ${flights.length} подходящих рейсов. Вот они:`, 
-              flights: formattedFlights
-            });
+            const response = {
+              fulfillmentText: `Нашёл ${flights.length} подходящих рейсов.`,
+              queryResult: {
+                fulfillmentText: `Нашёл ${flights.length} подходящих рейсов.`,
+                parameters: {
+                  flights: formattedFlights
+                }
+              },
+              flights: formattedFlights,
+              type: 'flights',
+              data: formattedFlights
+            };
+
+            console.log('Отправляемый ответ сервера:', JSON.stringify(response, null, 2));
+            return res.json(response);
           } else {
             return res.json({
               fulfillmentText: 'К сожалению, по вашему запросу рейсы не найдены. Хотите изменить параметры поиска?'

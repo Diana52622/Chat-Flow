@@ -55,6 +55,9 @@ export interface FlightFilters {
 export async function listFlights(
   filters: FlightFilters = {}
 ): Promise<Flight[]> {
+  console.log('=== START listFlights ===');
+  console.log('Filters received:', JSON.stringify(filters, null, 2));
+  
   let query = 'SELECT * FROM flights WHERE 1=1';
   const queryParams: any[] = [];
   let paramIndex = 1;
@@ -62,27 +65,44 @@ export async function listFlights(
   if (filters.departure_city) {
     query += ` AND departure_city ILIKE $${paramIndex}`;
     queryParams.push(`%${filters.departure_city}%`);
+    console.log(`Added departure city filter: %${filters.departure_city}%`);
     paramIndex++;
   }
 
   if (filters.arrival_city) {
     query += ` AND arrival_city ILIKE $${paramIndex}`;
     queryParams.push(`%${filters.arrival_city}%`);
+    console.log(`Added arrival city filter: %${filters.arrival_city}%`);
     paramIndex++;
   }
 
   if (filters.departure_date) {
     try {
-      const date = new Date(filters.departure_date);
-      if (isNaN(date.getTime())) {
+      const inputDate = new Date(filters.departure_date);
+      if (isNaN(inputDate.getTime())) {
         throw new Error('Invalid date format');
       }
-      const formattedDate = date.toISOString().split('T')[0];
-      query += ` AND DATE(departure_time) = $${paramIndex}::date`;
-      queryParams.push(formattedDate);
-      paramIndex++;
+      
+      const year = inputDate.getFullYear();
+      const month = String(inputDate.getMonth() + 1).padStart(2, '0');
+      const day = String(inputDate.getDate()).padStart(2, '0');
+      
+      const localDateString = `${year}-${month}-${day}`;
+      
+      const nextDay = new Date(inputDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const nextDayString = nextDay.toISOString().split('T')[0];
+      
+      console.log(`Filtering flights between ${localDateString} and ${nextDayString}`);
+      
+      query += ` AND departure_time >= $${paramIndex}::timestamp`;
+      query += ` AND departure_time < $${paramIndex + 1}::timestamp`;
+      queryParams.push(localDateString, nextDayString);
+      paramIndex += 2;
+      
     } catch (error) {
       console.error('Error processing date filter:', error);
+      throw new Error('Неверный формат даты. Используйте ГГГГ-ММ-ДД');
     }
   }
 
@@ -121,12 +141,17 @@ export async function listFlights(
     console.log('Full SQL query:', debugQuery);
     
     const result = await pool.query(query, queryParams);
-    console.log(`Found ${result.rows.length} flights matching the criteria`);
+    console.log(`=== FOUND ${result.rows.length} FLIGHTS ===`);
     
     if (result.rows.length > 0) {
       console.log('First flight sample:', JSON.stringify(result.rows[0], null, 2));
+      console.log('Departure time type:', typeof result.rows[0].departure_time);
+      console.log('Departure time value:', result.rows[0].departure_time);
+    } else {
+      console.log('No flights found for the given criteria');
     }
     
+    console.log('=== END listFlights ===\n');
     return result.rows;
   } catch (error) {
     console.error('Error listing flights:', error);
