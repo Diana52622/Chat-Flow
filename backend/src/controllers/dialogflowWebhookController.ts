@@ -4,6 +4,30 @@ import { sendToDialogflow } from '../services/dialogflowService';
 
 const searchParamsCache = new Map<string, any>();
 
+interface SessionData {
+  'city-from'?: string;
+  'city-to'?: string;
+  'departure-city'?: string;
+  'arrival-city'?: string;
+  'departure-date'?: string;
+  'date'?: string;
+  'transport-type'?: string;
+  'passengers'?: number | string;
+  [key: string]: any;
+}
+
+interface OutputContext {
+  name: string;
+  lifespanCount?: number;
+  parameters: {
+    fields: {
+      [key: string]: any;
+    };
+  };
+}
+
+const sessionData: { [sessionId: string]: SessionData } = {};
+
 export const handleDialogflowWebhook = async (req: Request, res: Response) => {
   try {
     const sessionId = req.body.session.split('/').pop() || 'default-session';
@@ -34,8 +58,47 @@ export const handleDialogflowWebhook = async (req: Request, res: Response) => {
       }
       
       console.log('Using session ID:', cleanSessionId);
+      const currentSessionData = sessionData[cleanSessionId] || {};
       
-      const dialogflowResponse = await sendToDialogflow(messageText, cleanSessionId);
+      let dialogflowResponse = await sendToDialogflow(
+        messageText, 
+        cleanSessionId,
+        'ru'
+      );
+      
+      if (dialogflowResponse.queryResult.intent.displayName === 'correct.parameter' ||
+          dialogflowResponse.queryResult.intent.displayName === 'confirmation.no') {
+        
+        const newContext: OutputContext = {
+          name: `${req.body.session}/contexts/session_data`,
+          lifespanCount: 5,
+          parameters: {
+            fields: Object.fromEntries(
+              Object.entries(currentSessionData).map(([key, value]) => {
+                if (typeof value === 'string') {
+                  return [key, { stringValue: value }];
+                } else if (typeof value === 'number') {
+                  return [key, { numberValue: value }];
+                } else if (typeof value === 'boolean') {
+                  return [key, { boolValue: value }];
+                }
+                return [key, { stringValue: String(value) }];
+              })
+            )
+          }
+        };
+
+        dialogflowResponse = {
+          ...dialogflowResponse,
+          queryResult: {
+            ...dialogflowResponse.queryResult,
+            outputContexts: [
+              ...(dialogflowResponse.queryResult.outputContexts || []),
+              newContext
+            ]
+          }
+        };
+      }
       
       console.log('Dialogflow response:', JSON.stringify(dialogflowResponse, null, 2));
       
@@ -50,6 +113,67 @@ export const handleDialogflowWebhook = async (req: Request, res: Response) => {
         intent: dialogflowResponse.queryResult.intent.displayName,
         isConfirmation
       });
+      
+      if (dialogflowResponse.queryResult.intent.displayName === 'confirmation.no') {
+        const outputContext = dialogflowResponse.queryResult.outputContexts?.find(
+          ctx => ctx.name.includes('awaiting_confirmation')
+        );
+        
+        const params = outputContext?.parameters?.fields || {};
+        const normalizedParams: any = {};
+        
+        Object.entries(params).forEach(([key, value]) => {
+          if (value?.stringValue) normalizedParams[key] = value.stringValue;
+          else if (value?.numberValue) normalizedParams[key] = value.numberValue;
+        });
+        
+        sessionData[cleanSessionId] = { ...sessionData[cleanSessionId], ...normalizedParams };
+        
+        return res.json({
+          fulfillmentText: "Что именно вы хотите исправить? Город отправления, город назначения, дату, тип транспорта или количество пассажиров?",
+          outputContexts: [
+            {
+              name: `${req.body.session}/contexts/awaiting_correction`,
+              lifespanCount: 2,
+              parameters: normalizedParams
+            }
+          ]
+        });
+      }
+      
+      if (dialogflowResponse.queryResult.intent.displayName === 'correct.parameter') {
+        const currentParams = sessionData[cleanSessionId] || {};
+        
+        const updatedParams: any = { ...currentParams };
+        const params = dialogflowResponse.queryResult.parameters?.fields || {};
+        
+        Object.entries(params).forEach(([key, value]) => {
+          if (value?.stringValue) updatedParams[key] = value.stringValue;
+          else if (value?.numberValue) updatedParams[key] = value.numberValue;
+        });
+        
+        sessionData[cleanSessionId] = updatedParams;
+        
+        const confirmationText = `Проверьте, пожалуйста, данные:
+- Откуда: ${updatedParams['city-from'] || updatedParams['departure-city'] || 'не указано'}
+- Куда: ${updatedParams['city-to'] || updatedParams['arrival-city'] || 'не указано'}
+- Дата: ${updatedParams.date || updatedParams['departure-date'] || 'не указана'}
+- Тип транспорта: ${updatedParams['transport-type'] || 'любой'}
+- Количество пассажиров: ${updatedParams.passengers || 1}
+
+Всё верно?`;
+
+        return res.json({
+          fulfillmentText: confirmationText,
+          outputContexts: [
+            {
+              name: `${req.body.session}/contexts/awaiting_confirmation`,
+              lifespanCount: 1,
+              parameters: updatedParams
+            }
+          ]
+        });
+      }
       
       if (dialogflowResponse.queryResult.intent.displayName === 'SearchFlights') {
         const params = dialogflowResponse.queryResult.parameters?.fields || {};
@@ -88,9 +212,17 @@ export const handleDialogflowWebhook = async (req: Request, res: Response) => {
           'to-city': toCity,
           'date-time': date,
           'transport-type': transportType,
-          'passenger-count': passengers
+          'passenger-count': passengers,
+          'city-from': fromCity,
+          'city-to': toCity,
+          'departure-date': date,
+          'date': date,
+          'transport_type': transportType,
+          'passengers': passengers
         };
+        
         searchParamsCache.set(sessionId, searchParams);
+        sessionData[sessionId] = { ...(sessionData[sessionId] || {}), ...searchParams };
         console.log('Сохранены параметры поиска:', searchParams);
       }
       
